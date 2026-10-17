@@ -24,6 +24,8 @@ A lightweight, **zero-token** plugin for **Google Antigravity** that gives you a
 5. **⌨️ `/usage-stats` Slash Command**
    - Type `/usage-stats` in chat anytime to print a clean Markdown table of your context memory and turn-by-turn token usage.
 
+<img width="722" height="972" alt="image" src="https://github.com/user-attachments/assets/9d90f6e6-2652-4c5c-a118-fa8238a8a473" />
+
 ---
 
 ## 🚀 Installation
