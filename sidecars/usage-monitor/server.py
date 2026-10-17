@@ -419,6 +419,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     border: 1px solid #1e293b;
   }
   .quota-mini-fill {
+    display: block;
     height: 100%;
     background: #10b981;
     border-radius: 999px;
