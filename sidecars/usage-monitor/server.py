@@ -1,6 +1,8 @@
 import json
 import os
 import re
+import time
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -17,7 +19,100 @@ BRAIN_DIR = APP_DATA_DIR / "brain"
 PRELOAD_PATH = APP_DATA_DIR / "lib" / "node_modules" / "sidecar_sdk" / "preload.js"
 
 _PARSE_CACHE = {}
+_MODELS_CACHE = {"ts": 0.0, "models": []}
 USER_REQ_RE = re.compile(r"<USER_REQUEST>\s*(.*?)\s*</USER_REQUEST>", re.DOTALL)
+EFFORT_SUFFIX_RE = re.compile(r"\s*\((?:Low|Medium|High|Thinking|Fast)\)\s*$", re.IGNORECASE)
+
+
+def classify_tier(label: str, model_id: str = "") -> str:
+    s = f"{label} {model_id}".lower()
+    if "flash" in s or "lite" in s:
+        return "flash"
+    if "opus" in s:
+        return "opus"
+    if "sonnet" in s:
+        return "sonnet"
+    if "oss" in s or "llama" in s:
+        return "oss"
+    return "pro"
+
+
+DEFAULT_MODELS = [
+    {"id": "pro", "name": "Gemini Pro / Argon (Flagship)", "tier": "pro", "quotaPct": None, "resetTime": None},
+    {"id": "flash", "name": "Gemini Flash (Fast Tier)", "tier": "flash", "quotaPct": None, "resetTime": None},
+    {"id": "sonnet", "name": "Claude Sonnet", "tier": "sonnet", "quotaPct": None, "resetTime": None},
+    {"id": "opus", "name": "Claude Opus", "tier": "opus", "quotaPct": None, "resetTime": None},
+    {"id": "oss", "name": "GPT-OSS", "tier": "oss", "quotaPct": None, "resetTime": None},
+]
+
+
+def get_live_models():
+    now = time.time()
+    if _MODELS_CACHE["models"] and (now - _MODELS_CACHE["ts"] < 15.0):
+        return _MODELS_CACHE["models"]
+
+    ls_addr = (os.environ.get("ANTIGRAVITY_LS_ADDRESS") or "").strip()
+    csrf = (os.environ.get("ANTIGRAVITY_CSRF_TOKEN") or "").strip()
+    if not ls_addr or not csrf:
+        return DEFAULT_MODELS
+
+    base_url = ls_addr if ls_addr.startswith("http") else f"http://{ls_addr}"
+    url = f"{base_url.rstrip('/')}/exa.language_server_pb.LanguageServerService/GetUserStatus"
+
+    try:
+        req = urllib.request.Request(
+            url,
+            data=b"{}",
+            headers={
+                "Content-Type": "application/json",
+                "x-codeium-csrf-token": csrf,
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=2.0) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace"))
+
+        configs = (
+            payload.get("userStatus", {})
+            .get("cascadeModelConfigData", {})
+            .get("clientModelConfigs", [])
+        )
+        families = {}
+        order = []
+        for cfg in configs:
+            raw_label = (cfg.get("label") or "").strip()
+            if not raw_label:
+                continue
+            family_name = EFFORT_SUFFIX_RE.sub("", raw_label).strip() or raw_label
+            model_id = cfg.get("modelId") or ""
+            tier = classify_tier(family_name, model_id)
+            q_info = cfg.get("quotaInfo") or {}
+            rem = q_info.get("remainingFraction")
+            quota_pct = round(float(rem) * 100, 1) if rem is not None else None
+            reset_time = q_info.get("resetTime")
+
+            if family_name not in families:
+                families[family_name] = {
+                    "id": family_name,
+                    "name": family_name,
+                    "tier": tier,
+                    "quotaPct": quota_pct,
+                    "resetTime": reset_time,
+                }
+                order.append(family_name)
+
+        if order:
+            # Sort so flagship Gemini Pro/Argon is first, then Flash, then others
+            tier_rank = {"pro": 0, "flash": 1, "sonnet": 2, "opus": 3, "oss": 4}
+            models_list = [families[k] for k in order]
+            models_list.sort(key=lambda m: tier_rank.get(m["tier"], 9))
+            _MODELS_CACHE["ts"] = now
+            _MODELS_CACHE["models"] = models_list
+            return models_list
+    except Exception:
+        pass
+
+    return _MODELS_CACHE["models"] or DEFAULT_MODELS
 
 
 def parse_transcript(transcript_path: Path):
@@ -75,8 +170,6 @@ def parse_transcript(transcript_path: Path):
                     current_turn["outputTokens"] += out_tok
                     current_turn["contextSize"] = in_tok + cache_tok + out_tok
                 elif stype == "CHECKPOINT" and current_turn is not None:
-                    # /compact creates a CHECKPOINT summary step without a PLANNER_RESPONSE.
-                    # Estimate the new compacted context (~15.5k system prompt + summary tokens)
                     summary_chars = len(step.get("content", "") or "")
                     est_ctx = 15500 + (summary_chars // 4)
                     current_turn["steps"] += 1
@@ -88,7 +181,6 @@ def parse_transcript(transcript_path: Path):
     if current_turn is not None:
         turns.append(current_turn)
 
-    # Find the most recent turn that actually has model token data or a checkpoint reset
     completed_turns = [t for t in turns if t["steps"] > 0]
     last_turn = completed_turns[-1] if completed_turns else (turns[-1] if turns else None)
 
@@ -170,6 +262,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     align-items: center;
     justify-content: space-between;
     margin-bottom: 12px;
+    gap: 8px;
   }
   .brand {
     display: flex;
@@ -178,6 +271,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     font-weight: 700;
     font-size: 14px;
     color: #f8fafc;
+    white-space: nowrap;
   }
   .dot-live {
     width: 8px;
@@ -194,6 +288,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     padding: 4px 8px;
     font-size: 11.5px;
     cursor: pointer;
+    max-width: 210px;
   }
   .card {
     background: #131c31;
@@ -261,36 +356,22 @@ HTML_PAGE = r"""<!DOCTYPE html>
     color: #a7f3d0;
   }
 
-  /* 2. Key-Value Rows with Explanations */
-  .prompt-box {
-    background: #0b1120;
-    border-left: 3px solid #38bdf8;
-    padding: 7px 10px;
-    border-radius: 0 6px 6px 0;
-    font-size: 12px;
-    color: #e2e8f0;
-    margin-bottom: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  /* Explained Metric Rows */
   .metric-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
-    border-top: 1px solid rgba(148, 163, 184, 0.1);
+    padding: 9px 0;
+    border-bottom: 1px solid #1e293b;
   }
-  .metric-row:first-of-type {
-    border-top: none;
-    padding-top: 0;
-  }
-  .metric-row:last-of-type {
+  .metric-row:last-child {
+    border-bottom: none;
     padding-bottom: 0;
   }
   .metric-left {
     display: flex;
     flex-direction: column;
+    padding-right: 10px;
   }
   .metric-name {
     font-weight: 600;
@@ -305,17 +386,44 @@ HTML_PAGE = r"""<!DOCTYPE html>
     text-align: right;
     font-weight: 700;
     font-size: 14px;
-    font-variant-numeric: tabular-nums;
     color: #f8fafc;
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    margin-left: 10px;
   }
   .metric-right.price {
     color: #34d399;
     font-size: 15px;
   }
+  .prompt-box {
+    background: #090d16;
+    border-left: 3px solid #38bdf8;
+    padding: 7px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #e2e8f0;
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-  /* Details / Dropdowns */
+  .quota-mini-bar {
+    width: 64px;
+    height: 6px;
+    background: #090d16;
+    border-radius: 999px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 6px;
+    border: 1px solid #1e293b;
+  }
+  .quota-mini-fill {
+    height: 100%;
+    background: #10b981;
+    border-radius: 999px;
+  }
+
   details {
     background: #131c31;
     border: 1px solid #1e293b;
@@ -328,31 +436,29 @@ HTML_PAGE = r"""<!DOCTYPE html>
     font-weight: 600;
     font-size: 12px;
     color: #94a3b8;
-    user-select: none;
-  }
-  summary:hover {
-    color: #e2e8f0;
+    outline: none;
   }
   .history-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #1e293b;
+    font-size: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 7px 0;
-    border-top: 1px solid rgba(148, 163, 184, 0.1);
-    font-size: 12px;
+    gap: 8px;
   }
+  .history-item:last-child { border-bottom: none; }
   .history-prompt {
     color: #cbd5e1;
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 210px;
+    white-space: nowrap;
+    flex: 1;
   }
   .history-meta {
     color: #94a3b8;
-    font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    margin-left: 8px;
+    font-variant-numeric: tabular-nums;
   }
 </style>
 </head>
@@ -362,19 +468,16 @@ HTML_PAGE = r"""<!DOCTYPE html>
   <div class="topbar">
     <div class="brand">
       <span class="dot-live"></span>
-      <span>Chat Usage & Memory</span>
+      <span>Chat Usage &amp; Memory</span>
     </div>
-    <select class="tier-select" id="tier-select" title="Select model pricing to estimate API cost">
-      <option value="pro">Gemini Pro Rates</option>
-      <option value="flash">Gemini Flash Rates</option>
-    </select>
+    <select id="tier-select" class="tier-select" title="Select active AI model to estimate API equivalent cost"></select>
   </div>
 
-  <!-- 1. MEMORY / CONTEXT WINDOW -->
+  <!-- 1. CONTEXT WINDOW (MEMORY) -->
   <div class="card">
     <div class="section-title">
       <span>1. Chat Memory (Context Window)</span>
-      <span id="ctx-pages-equiv">~0 pages</span>
+      <span id="ctx-pages-equiv">~0 pages of text</span>
     </div>
     <div class="section-desc">
       How much of the AI's 1,000,000-token memory this conversation is currently holding:
@@ -409,7 +512,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     <div class="metric-row">
       <div class="metric-left">
         <span class="metric-name">Estimated Task Cost</span>
-        <span class="metric-help">API equivalent cost for this single turn</span>
+        <span class="metric-help" id="last-cost-tier-label">API equivalent cost for this single turn</span>
       </div>
       <div class="metric-right price" id="last-cost">$0.000</div>
     </div>
@@ -460,7 +563,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     <div class="metric-row">
       <div class="metric-left">
         <span class="metric-name">Total AI Output Written</span>
-        <span class="metric-help">All explanations & files written so far</span>
+        <span class="metric-help">All explanations &amp; files written so far</span>
       </div>
       <div class="metric-right" id="total-out">0 tokens</div>
     </div>
@@ -474,6 +577,18 @@ HTML_PAGE = r"""<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- 4. LIVE MODEL QUOTA REMAINING (Auto-detected from Antigravity) -->
+  <div class="card" id="quota-card" style="display: none;">
+    <div class="section-title">
+      <span>4. Live Antigravity Model Quotas</span>
+      <span id="quota-reset-badge" style="color: #38bdf8; font-weight: 600; text-transform: none;"></span>
+    </div>
+    <div class="section-desc">
+      Remaining quota across your live Antigravity models:
+    </div>
+    <div id="quota-list"></div>
+  </div>
+
   <!-- OPTIONAL: Past Messages List -->
   <details>
     <summary>📜 View Every Message in This Chat</summary>
@@ -482,10 +597,11 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
   <!-- OPTIONAL: Quick Glossary -->
   <details>
-    <summary>❓ What is a token & when should I use /compact?</summary>
+    <summary>❓ What is a token &amp; when should I use /compact?</summary>
     <div style="margin-top: 8px; font-size: 12px; color: #cbd5e1;">
       <p style="margin: 0 0 6px 0;">• <strong>1,000 tokens</strong> ≈ 750 words (or ~1.5 pages of text).</p>
-      <p style="margin: 0 0 6px 0;">• <strong>Chat Memory (Context Window):</strong> Every time you send a message, the AI re-reads the conversation history. When this bar passes <strong>50%–60%</strong>, type <code>/compact</code> in chat to summarize old messages and keep responses fast.</p>
+      <p style="margin: 0 0 6px 0;">• <strong>200k Token Threshold (20%):</strong> Standard 1x token rates apply up to 200k tokens. Above 200k tokens, long-context requests are billed/weighted at 2x.</p>
+      <p style="margin: 0 0 6px 0;">• <strong>When to use <code>/compact</code>:</strong> Type <code>/compact</code> around 20%–50% to summarize older history and drop your context back down to ~2%.</p>
       <p style="margin: 0;">• <strong>Zero-Token Panel:</strong> This dashboard reads local log files on your PC—it uses 0 tokens itself.</p>
     </div>
   </details>
@@ -494,12 +610,16 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
 <script>
   const PRICING = {
-    pro:   { in: 1.25 / 1e6, cache: 0.3125 / 1e6, out: 5.00 / 1e6 },
-    flash: { in: 0.15 / 1e6, cache: 0.0375 / 1e6, out: 0.60 / 1e6 }
+    pro:    { label: 'Pro Tier ($1.25/$5)',    in: 1.25 / 1e6, cache: 0.3125 / 1e6, out: 5.00 / 1e6 },
+    flash:  { label: 'Flash Tier ($0.15/$0.6)', in: 0.15 / 1e6, cache: 0.0375 / 1e6, out: 0.60 / 1e6 },
+    sonnet: { label: 'Sonnet Tier ($3/$15)',   in: 3.00 / 1e6, cache: 0.3000 / 1e6, out: 15.0 / 1e6 },
+    opus:   { label: 'Opus Tier ($5/$25)',     in: 5.00 / 1e6, cache: 0.5000 / 1e6, out: 25.0 / 1e6 },
+    oss:    { label: 'OSS Tier ($0.5/$1.5)',   in: 0.50 / 1e6, cache: 0.1250 / 1e6, out: 1.50 / 1e6 }
   };
 
   const tierSelect = document.getElementById('tier-select');
   let lastData = null;
+  let knownModelsSig = '';
 
   function fmtNum(n) {
     return (n || 0).toLocaleString();
@@ -523,14 +643,86 @@ HTML_PAGE = r"""<!DOCTYPE html>
     return '$' + c.toFixed(2);
   }
 
+  function fmtResetTime(isoStr) {
+    if (!isoStr) return '';
+    const diffMs = new Date(isoStr).getTime() - Date.now();
+    if (isNaN(diffMs) || diffMs <= 0) return 'Resetting soon';
+    const totalMins = Math.floor(diffMs / 60000);
+    const hrs = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    return hrs > 0 ? `Resets in ${hrs}h ${mins}m` : `Resets in ${mins}m`;
+  }
+
+  function syncModelsDropdown(models) {
+    if (!Array.isArray(models) || !models.length) return;
+    const sig = models.map(m => `${m.id}:${m.tier}`).join('|');
+    if (sig === knownModelsSig) return;
+    const prevVal = tierSelect.value;
+    knownModelsSig = sig;
+    tierSelect.innerHTML = '';
+    for (const m of models) {
+      const opt = document.createElement('option');
+      opt.value = m.tier;
+      opt.dataset.modelName = m.name;
+      opt.textContent = m.name;
+      tierSelect.appendChild(opt);
+    }
+    if (prevVal && [...tierSelect.options].some(o => o.value === prevVal)) {
+      tierSelect.value = prevVal;
+    }
+  }
+
+  function renderQuotas(models) {
+    const card = document.getElementById('quota-card');
+    const listEl = document.getElementById('quota-list');
+    const resetBadge = document.getElementById('quota-reset-badge');
+    const withQuota = (models || []).filter(m => typeof m.quotaPct === 'number');
+    if (!withQuota.length) {
+      card.style.display = 'none';
+      return;
+    }
+    card.style.display = 'block';
+    const firstReset = withQuota.find(m => m.resetTime)?.resetTime;
+    resetBadge.textContent = fmtResetTime(firstReset);
+
+    listEl.innerHTML = '';
+    for (const m of withQuota) {
+      const pct = Math.max(0, Math.min(100, m.quotaPct));
+      const color = pct > 50 ? '#34d399' : (pct > 20 ? '#fbbf24' : '#fb7185');
+      const row = document.createElement('div');
+      row.className = 'metric-row';
+      row.innerHTML = `
+        <div class="metric-left">
+          <span class="metric-name">${m.name}</span>
+        </div>
+        <div class="metric-right" style="color:${color}">
+          ${pct.toFixed(1)}% left
+          <span class="quota-mini-bar">
+            <span class="quota-mini-fill" style="width:${pct}%; background:${color}"></span>
+          </span>
+        </div>
+      `;
+      listEl.appendChild(row);
+    }
+  }
+
   function render(data) {
-    if (!data || !data.active) return;
+    if (!data) return;
     lastData = data;
+
+    if (data.models) {
+      syncModelsDropdown(data.models);
+      renderQuotas(data.models);
+    }
+
+    if (!data.active) return;
 
     const active = data.active;
     const totals = active.totals || {};
     const lastTurn = active.lastTurn || {};
-    const tier = tierSelect.value;
+    const tier = tierSelect.value || 'pro';
+    const selectedOpt = tierSelect.options[tierSelect.selectedIndex];
+    const selectedName = selectedOpt ? selectedOpt.textContent : 'Selected Model';
 
     // 1. Context Window (out of 1,000,000)
     const ctxLimit = 1000000;
@@ -568,6 +760,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     // 2. Last Message Task
     document.getElementById('last-turn-badge').textContent = lastTurn.turn ? `Message #${lastTurn.turn}` : 'Message #-';
     document.getElementById('last-prompt').textContent = lastTurn.prompt ? `"${lastTurn.prompt}"` : 'Waiting for message...';
+    document.getElementById('last-cost-tier-label').textContent = `API equivalent cost (${selectedName})`;
     const lastCost = calcCost(lastTurn.inputTokens || 0, lastTurn.cacheReadTokens || 0, lastTurn.outputTokens || 0, tier);
     document.getElementById('last-cost').textContent = fmtCost(lastCost);
 
@@ -685,6 +878,7 @@ class Handler(BaseHTTPRequestHandler):
             payload = {
                 "conversations": conv_list,
                 "active": selected_data,
+                "models": get_live_models(),
             }
             self._send(
                 200,
