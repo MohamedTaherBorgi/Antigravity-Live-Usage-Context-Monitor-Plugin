@@ -1,0 +1,10 @@
+{
+  "name": "usage-monitor",
+  "title": "Antigravity Live Usage & Context Monitor",
+  "description": "Zero-token live side panel and /usage-stats command showing active Context Window (% Full out of 1M tokens), Last Message Task tokens/cost, Cache Savings Rate, and Full Conversation usage.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Community"
+  },
+  "logo": "assets/logo.svg"
+}

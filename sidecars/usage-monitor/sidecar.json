@@ -1,0 +1,18 @@
+{
+  "command": "python",
+  "args": ["server.py"],
+  "restart_policy": "always",
+  "display_name": "Usage & Context Monitor",
+  "description": "Live zero-token side-panel showing active Context Window percentage, Last Message Task tokens/cost, and Full Conversation usage.",
+  "has_web_ui": true,
+  "ui_config": {
+    "display_name": "Usage & Context",
+    "views": [
+      {
+        "entrypoint": "SIDECAR_UI_ENTRYPOINT_AUX_PANE",
+        "path": "/",
+        "title": "Usage & Context"
+      }
+    ]
+  }
+}
