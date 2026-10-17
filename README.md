@@ -21,7 +21,9 @@ A lightweight, **zero-token** plugin for **Google Antigravity** that gives you a
      - **Actions / Tool Steps** (how many internal model calls the turn took)
 4. **📊 3. Whole Conversation Totals & History**
    - Cumulative cost, total output tokens, **Cache Savings Rate** (`% of chat history reused at 75% discount`), and a collapsible per-message cost log.
-5. **⌨️ `/usage-stats` Slash Command**
+5. **🔋 4. Live Antigravity Model Quotas (Auto-Detected)**
+   - Automatically queries Antigravity's local language server for live model names (`Gemini 4 Argon`, `Gemini 3.8 Flash`, `Claude Sonnet 5.5`, `Claude Opus 5.5`, `GPT-OSS 120B`, etc.) and displays your **remaining quota %** and **reset countdown timer** for each model family.
+6. **⌨️ `/usage-stats` Slash Command**
    - Type `/usage-stats` in chat anytime to print a clean Markdown table of your context memory and turn-by-turn token usage.
 
 <img width="480" alt="Antigravity Live Usage & Context Monitor Preview" src="assets/preview.png" />
@@ -34,12 +36,12 @@ Clone this repository directly into your Antigravity plugins directory:
 
 ### Windows (PowerShell)
 ```powershell
-git clone https://github.com/MohamedTaherBorgi/Antigravity-Live-Usage-Context-Monitor.git "$HOME\.gemini\config\plugins\usage-monitor"
+git clone https://github.com/MohamedTaherBorgi/Antigravity-Live-Usage-Context-Monitor-Plugin.git "$HOME\.gemini\config\plugins\usage-monitor"
 ```
 
 ### macOS / Linux
 ```bash
-git clone https://github.com/MohamedTaherBorgi/Antigravity-Live-Usage-Context-Monitor.git ~/.gemini/config/plugins/usage-monitor
+git clone https://github.com/MohamedTaherBorgi/Antigravity-Live-Usage-Context-Monitor-Plugin.git ~/.gemini/config/plugins/usage-monitor
 ```
 
 ### Enable the Plugin
