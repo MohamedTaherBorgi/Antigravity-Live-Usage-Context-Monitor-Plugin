@@ -390,7 +390,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     </div>
 
     <div class="status-tip" id="ctx-advice">
-      Plenty of memory left. You can paste large PDFs and exams freely.
+      🟢 Optimal memory zone (&lt;200k tokens). Fast responses &amp; standard 1x token rates.
     </div>
   </div>
 
@@ -545,24 +545,24 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
     const adviceEl = document.getElementById('ctx-advice');
     const pctEl = document.getElementById('ctx-pct');
-    if (pct < 40) {
+    if (pct < 20) {
       pctEl.style.color = '#34d399';
       adviceEl.style.background = 'rgba(16, 185, 129, 0.1)';
       adviceEl.style.borderColor = 'rgba(16, 185, 129, 0.25)';
       adviceEl.style.color = '#a7f3d0';
-      adviceEl.textContent = '🟢 Plenty of memory left. You can paste PDFs, exercises, and exams freely.';
-    } else if (pct < 75) {
+      adviceEl.textContent = '🟢 Optimal memory zone (<200k tokens). Fast responses & standard 1x token rates.';
+    } else if (pct < 50) {
       pctEl.style.color = '#fbbf24';
       adviceEl.style.background = 'rgba(251, 191, 36, 0.12)';
       adviceEl.style.borderColor = 'rgba(251, 191, 36, 0.3)';
       adviceEl.style.color = '#fde68a';
-      adviceEl.textContent = '🟡 Memory is filling up. Consider typing /compact soon to compress older messages.';
+      adviceEl.textContent = '🟡 Passed 200k tokens (2x long-context tier). Type /compact anytime to compress history.';
     } else {
       pctEl.style.color = '#fb7185';
       adviceEl.style.background = 'rgba(251, 113, 133, 0.12)';
       adviceEl.style.borderColor = 'rgba(251, 113, 133, 0.3)';
       adviceEl.style.color = '#fecdd3';
-      adviceEl.textContent = '🔴 Memory is high! Type /compact in chat now or start a new conversation for a fresh topic.';
+      adviceEl.textContent = '🔴 Context memory is heavy! Run /compact now or start a new chat for a fresh task.';
     }
 
     // 2. Last Message Task

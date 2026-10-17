@@ -12,7 +12,7 @@ A lightweight, **zero-token** plugin for **Google Antigravity** that gives you a
 2. **🧠 1. Chat Memory (Context Window Meter)**
    - Shows exact percentage of the `1,000,000`-token window currently held in memory (`% Full`, `k / 1,000k tokens`, and approximate page count).
    - Automatically detects `/compact` resets.
-   - Color-coded status bar (`Green < 40%`, `Yellow 40–75%`, `Red > 75%`) so you know when to run `/compact` or start a fresh chat.
+   - Color-coded status bar (`Green < 20% (200k)`, `Yellow 20–50%`, `Red > 50%`) so you know when you pass the 200k tier or should run `/compact`.
 3. **⚡ 2. Last Message Task Breakdown**
    - Displays the exact cost and token breakdown of your most recent message:
      - **Estimated Task Cost** (switchable between Gemini Pro and Gemini Flash pricing)
@@ -24,7 +24,7 @@ A lightweight, **zero-token** plugin for **Google Antigravity** that gives you a
 5. **⌨️ `/usage-stats` Slash Command**
    - Type `/usage-stats` in chat anytime to print a clean Markdown table of your context memory and turn-by-turn token usage.
 
-<img width="722" height="972" alt="image" src="https://github.com/user-attachments/assets/9d90f6e6-2652-4c5c-a118-fa8238a8a473" />
+<img width="480" alt="Antigravity Live Usage & Context Monitor Preview" src="assets/preview.png" />
 
 ---
 
@@ -34,12 +34,12 @@ Clone this repository directly into your Antigravity plugins directory:
 
 ### Windows (PowerShell)
 ```powershell
-git clone https://github.com/<your-username>/antigravity-usage-monitor.git "$HOME\.gemini\config\plugins\usage-monitor"
+git clone https://github.com/MohamedTaherBorgi/Antigravity-Live-Usage-Context-Monitor.git "$HOME\.gemini\config\plugins\usage-monitor"
 ```
 
 ### macOS / Linux
 ```bash
-git clone https://github.com/<your-username>/antigravity-usage-monitor.git ~/.gemini/config/plugins/usage-monitor
+git clone https://github.com/MohamedTaherBorgi/Antigravity-Live-Usage-Context-Monitor.git ~/.gemini/config/plugins/usage-monitor
 ```
 
 ### Enable the Plugin
