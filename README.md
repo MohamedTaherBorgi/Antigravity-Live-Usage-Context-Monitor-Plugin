@@ -1,4 +1,4 @@
-# Antigravity Live Usage & Context Monitor (`usage-monitor`)
+# Antigravity Live Usage & Context Monitor and `usage-monitor` command
 
 A lightweight, **zero-token** plugin for **Google Antigravity** that gives you a live side-panel dashboard and `/usage-stats` slash command to track your **Context Window (Memory)**, **Token Usage**, **Cache Savings Rate**, and **Estimated API Cost** in real time.
 
