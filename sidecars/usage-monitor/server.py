@@ -646,11 +646,14 @@ HTML_PAGE = r"""<!DOCTYPE html>
   function fmtResetTime(isoStr) {
     if (!isoStr) return '';
     const diffMs = new Date(isoStr).getTime() - Date.now();
-    if (isNaN(diffMs) || diffMs <= 0) return 'Resetting soon';
+    if (isNaN(diffMs) || diffMs <= 0) return 'Resets soon';
     const totalMins = Math.floor(diffMs / 60000);
-    const hrs = Math.floor(totalMins / 60);
+    const days = Math.floor(totalMins / 1440);
+    const hrs = Math.floor((totalMins % 1440) / 60);
     const mins = totalMins % 60;
-    return hrs > 0 ? `Resets in ${hrs}h ${mins}m` : `Resets in ${mins}m`;
+    if (days > 0) return `Resets in ${days}d ${hrs}h`;
+    if (hrs > 0) return `Resets in ${hrs}h ${mins}m`;
+    return `Resets in ${mins}m`;
   }
 
   function syncModelsDropdown(models) {
@@ -682,18 +685,19 @@ HTML_PAGE = r"""<!DOCTYPE html>
       return;
     }
     card.style.display = 'block';
-    const firstReset = withQuota.find(m => m.resetTime)?.resetTime;
-    resetBadge.textContent = fmtResetTime(firstReset);
+    resetBadge.textContent = 'Live';
 
     listEl.innerHTML = '';
     for (const m of withQuota) {
       const pct = Math.max(0, Math.min(100, m.quotaPct));
       const color = pct > 50 ? '#34d399' : (pct > 20 ? '#fbbf24' : '#fb7185');
+      const resetText = fmtResetTime(m.resetTime);
       const row = document.createElement('div');
       row.className = 'metric-row';
       row.innerHTML = `
         <div class="metric-left">
           <span class="metric-name">${m.name}</span>
+          ${resetText ? `<span class="metric-help">${resetText}</span>` : ''}
         </div>
         <div class="metric-right" style="color:${color}">
           ${pct.toFixed(1)}% left
