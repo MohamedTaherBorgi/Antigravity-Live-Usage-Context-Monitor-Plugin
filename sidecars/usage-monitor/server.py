@@ -254,11 +254,12 @@ HTML_PAGE = r"""<!DOCTYPE html>
   }
   .wrap {
     padding: 12px;
-    max-width: 460px;
+    max-width: 480px;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    container-type: inline-size;
   }
 
   /* Topbar */
@@ -266,17 +267,30 @@ HTML_PAGE = r"""<!DOCTYPE html>
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 10px;
     padding-bottom: 2px;
   }
   .brand {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     font-weight: 700;
     font-size: 13.5px;
     color: #f8fafc;
     white-space: nowrap;
+    min-width: 0;
+  }
+  .brand-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: rgba(20, 184, 166, 0.12);
+    border: 1px solid rgba(20, 184, 166, 0.25);
+    color: #2dd4bf;
+    flex-shrink: 0;
   }
   .dot-live {
     width: 7px;
@@ -284,6 +298,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     border-radius: 50%;
     background: #10b981;
     box-shadow: 0 0 6px #10b981;
+    flex-shrink: 0;
   }
   .tier-select {
     background: #131c31;
@@ -296,6 +311,8 @@ HTML_PAGE = r"""<!DOCTYPE html>
     max-width: 200px;
     outline: none;
     font-weight: 500;
+    flex-shrink: 0;
+    transition: border-color 0.15s ease;
   }
   .tier-select:focus {
     border-color: #38bdf8;
@@ -307,12 +324,18 @@ HTML_PAGE = r"""<!DOCTYPE html>
     border: 1px solid #1e293b;
     border-radius: 10px;
     padding: 11px 13px;
+    transition: border-color 0.2s ease;
+  }
+  .card:hover {
+    border-color: rgba(255, 255, 255, 0.12);
   }
   .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
+    gap: 8px;
+    min-width: 0;
   }
   .card-title {
     font-size: 11px;
@@ -320,10 +343,18 @@ HTML_PAGE = r"""<!DOCTYPE html>
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
   .card-sub {
     font-size: 11px;
     color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
   }
 
   /* Context Meter */
@@ -332,17 +363,20 @@ HTML_PAGE = r"""<!DOCTYPE html>
     align-items: baseline;
     justify-content: space-between;
     margin-bottom: 6px;
+    gap: 8px;
   }
   .ctx-pct {
     font-size: 22px;
     font-weight: 800;
     color: #34d399;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
   .ctx-tokens {
     font-size: 12px;
     color: #94a3b8;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
   .bar-bg {
     width: 100%;
@@ -360,12 +394,21 @@ HTML_PAGE = r"""<!DOCTYPE html>
     transition: width 0.3s ease;
   }
   .status-pill {
-    font-size: 11.5px;
-    padding: 5px 9px;
-    border-radius: 6px;
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 7px;
     background: rgba(16, 185, 129, 0.1);
     border: 1px solid rgba(16, 185, 129, 0.25);
     color: #a7f3d0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    line-height: 1.4;
+  }
+  .status-icon {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
   }
 
   /* Prompt pill */
@@ -424,8 +467,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 0;
+    padding: 7px 0;
     border-top: 1px solid #1e293b;
+    gap: 8px;
+    min-width: 0;
   }
   .quota-row:first-child {
     border-top: none;
@@ -435,6 +480,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
     font-weight: 600;
     color: #e2e8f0;
     font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
   .quota-timer {
     font-size: 10.5px;
@@ -447,6 +496,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     font-weight: 600;
     font-size: 12px;
     font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
   }
   .quota-mini-bar {
     width: 50px;
@@ -455,6 +505,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     border-radius: 999px;
     overflow: hidden;
     border: 1px solid #1e293b;
+    flex-shrink: 0;
   }
   .quota-mini-fill {
     display: block;
@@ -475,6 +526,12 @@ HTML_PAGE = r"""<!DOCTYPE html>
     font-weight: 600;
     color: #94a3b8;
     outline: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  summary:hover {
+    color: #f8fafc;
   }
   .history-item {
     padding: 6px 0;
@@ -491,11 +548,27 @@ HTML_PAGE = r"""<!DOCTYPE html>
     text-overflow: ellipsis;
     white-space: nowrap;
     flex: 1;
+    min-width: 0;
   }
   .history-meta {
     color: #94a3b8;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  /* Responsive & Container Queries */
+  @container (max-width: 320px) {
+    .wrap { padding: 8px; }
+    .ctx-pct { font-size: 18px; }
+    .ctx-tokens { font-size: 10.5px; }
+    .tier-select { max-width: 120px; font-size: 10.5px; }
+    .metric-table { font-size: 11px; }
+  }
+  @media (max-width: 340px) {
+    .wrap { padding: 8px; }
+    .ctx-pct { font-size: 18px; }
+    .ctx-tokens { font-size: 10.5px; }
   }
 </style>
 </head>
@@ -505,8 +578,11 @@ HTML_PAGE = r"""<!DOCTYPE html>
   <!-- Top Bar -->
   <div class="topbar">
     <div class="brand">
-      <span class="dot-live"></span>
+      <div class="brand-badge" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      </div>
       <span>Usage &amp; Memory</span>
+      <span class="dot-live" title="Live connection active"></span>
     </div>
     <select id="tier-select" class="tier-select" title="Active AI model price rate"></select>
   </div>
@@ -525,7 +601,8 @@ HTML_PAGE = r"""<!DOCTYPE html>
       <div class="bar-fill" id="ctx-bar" style="width: 0%"></div>
     </div>
     <div class="status-pill" id="ctx-advice">
-      🟢 Optimal memory zone (&lt;200k tokens). Standard 1x rates.
+      <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <span>Optimal memory zone (&lt;200k tokens). Standard 1x rates.</span>
     </div>
   </div>
 
@@ -582,7 +659,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
 
   <!-- 4. Collapsible Message History -->
   <details>
-    <summary>📜 Message History</summary>
+    <summary>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>Message History</span>
+    </summary>
     <div id="history-list" style="margin-top: 6px;"></div>
   </details>
 
@@ -722,19 +802,19 @@ HTML_PAGE = r"""<!DOCTYPE html>
       adviceEl.style.background = 'rgba(16, 185, 129, 0.1)';
       adviceEl.style.borderColor = 'rgba(16, 185, 129, 0.25)';
       adviceEl.style.color = '#a7f3d0';
-      adviceEl.textContent = '🟢 Optimal memory zone (<200k tokens). Standard 1x rates.';
+      adviceEl.innerHTML = '<svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span>Optimal memory zone (&lt;200k tokens). Standard 1x rates.</span>';
     } else if (pct < 50) {
       pctEl.style.color = '#fbbf24';
       adviceEl.style.background = 'rgba(251, 191, 36, 0.12)';
       adviceEl.style.borderColor = 'rgba(251, 191, 36, 0.3)';
       adviceEl.style.color = '#fde68a';
-      adviceEl.textContent = '🟡 Passed 200k tokens (2x long-context tier). Type /compact anytime.';
+      adviceEl.innerHTML = '<svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Passed 200k tokens (2x long-context tier). Type /compact anytime.</span>';
     } else {
       pctEl.style.color = '#fb7185';
       adviceEl.style.background = 'rgba(251, 113, 133, 0.12)';
       adviceEl.style.borderColor = 'rgba(251, 113, 133, 0.3)';
       adviceEl.style.color = '#fecdd3';
-      adviceEl.textContent = '🔴 Memory heavy! Run /compact now or start a new chat.';
+      adviceEl.innerHTML = '<svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Memory heavy! Run /compact now or start a new chat.</span>';
     }
 
     // 2. Metrics Table
