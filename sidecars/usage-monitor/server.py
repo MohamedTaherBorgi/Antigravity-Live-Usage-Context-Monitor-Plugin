@@ -292,6 +292,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
     color: #2dd4bf;
     flex-shrink: 0;
   }
+  @keyframes dotPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(0.85); opacity: 0.6; }
+  }
   .dot-live {
     width: 7px;
     height: 7px;
@@ -299,6 +303,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     background: #10b981;
     box-shadow: 0 0 6px #10b981;
     flex-shrink: 0;
+    animation: dotPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
   .tier-select {
     background: #131c31;
@@ -312,10 +317,17 @@ HTML_PAGE = r"""<!DOCTYPE html>
     outline: none;
     font-weight: 500;
     flex-shrink: 0;
-    transition: border-color 0.15s ease;
+    transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .tier-select:hover {
+    border-color: rgba(255, 255, 255, 0.2);
   }
   .tier-select:focus {
     border-color: #38bdf8;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+  }
+  .tier-select:active {
+    transform: scale(0.98);
   }
 
   /* Unified Cards */
@@ -324,10 +336,11 @@ HTML_PAGE = r"""<!DOCTYPE html>
     border: 1px solid #1e293b;
     border-radius: 10px;
     padding: 11px 13px;
-    transition: border-color 0.2s ease;
+    transition: border-color 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
   }
   .card:hover {
-    border-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   }
   .card-header {
     display: flex;
@@ -391,7 +404,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     height: 100%;
     background: linear-gradient(90deg, #10b981, #38bdf8);
     border-radius: 999px;
-    transition: width 0.3s ease;
+    transition: width 0.45s cubic-bezier(0.34, 1.2, 0.64, 1);
   }
   .status-pill {
     font-size: 11px;
@@ -511,6 +524,7 @@ HTML_PAGE = r"""<!DOCTYPE html>
     display: block;
     height: 100%;
     border-radius: 999px;
+    transition: width 0.45s cubic-bezier(0.34, 1.2, 0.64, 1);
   }
 
   /* History Details */
@@ -520,6 +534,10 @@ HTML_PAGE = r"""<!DOCTYPE html>
     border-radius: 8px;
     padding: 8px 11px;
     font-size: 11.5px;
+    transition: border-color 0.2s ease;
+  }
+  details[open] {
+    border-color: rgba(255, 255, 255, 0.12);
   }
   summary {
     cursor: pointer;
@@ -529,17 +547,27 @@ HTML_PAGE = r"""<!DOCTYPE html>
     display: flex;
     align-items: center;
     gap: 6px;
+    user-select: none;
+    transition: color 0.15s ease, transform 0.12s cubic-bezier(0.16, 1, 0.3, 1);
   }
   summary:hover {
     color: #f8fafc;
   }
+  summary:active {
+    transform: scale(0.99);
+  }
   .history-item {
-    padding: 6px 0;
+    padding: 6px 4px;
     border-bottom: 1px solid #1e293b;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 8px;
+    border-radius: 4px;
+    transition: background-color 0.12s ease;
+  }
+  .history-item:hover {
+    background: rgba(255, 255, 255, 0.03);
   }
   .history-item:last-child { border-bottom: none; }
   .history-prompt {
